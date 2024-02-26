@@ -116,7 +116,7 @@ export const getId = async (req, res) => {
   try {
     if (!validator.isMongoId(req.params.id)) throw new Error('ID')
 
-    const result = await books.findById(req.params.id)
+    const result = await books.findById(req.params.id).populate('reviews.user', 'account')
 
     if (!result) throw new Error('NOT FOUND')
 
@@ -186,21 +186,39 @@ export const addreviews = async (req, res) => {
 
     if (!result) throw new Error('NOT FOUND')
 
+    const existingReview = result.reviews.find(review => review.user.toString() === req.user._id.toString())
+    if (existingReview) {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: '評論只能寫一次'
+      })
+      return
+    }
     const reviews = {
       user: req.user._id,
-      comment: req.body.comment,
+      comment: req.body.conmment,
       rating: req.body.rating
     }
 
-    books.reviews.push(reviews)
-    await books.save()
+    result.reviews.push(reviews)
+    await result.save()
 
     res.status(StatusCodes.OK).json({
       success: true,
       message: '',
-      result
+      result: {
+        comment: req.body.conmment,
+        rating: req.body.rating,
+        _id: result.reviews[result.reviews.length - 1]._id,
+        reply: [],
+        user: {
+          account: req.user.account,
+          _id: req.user._id
+        }
+      }
     })
   } catch (error) {
+    console.log(error)
     if (error.name === 'CastError' || error.message === 'ID') {
       res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
@@ -226,18 +244,15 @@ export const addreviews = async (req, res) => {
     }
   }
 }
+
 export const editreviews = async (req, res) => {
+  console.log(req.body.reviews)
   try {
     if (!validator.isMongoId(req.params.id)) throw new Error('ID')
-    const updatedBook = await books.updateOne(
-      { _id: req.params.id, 'reviews._id': req.body.reviewId, 'reviews.$.user': req.user._id },
-      { $set: { 'reviews.$.comment': req.body.comment, 'reviews.$.rating': req.body.rating } },
-      { runValidators: true }
-    ).orFail(new Error('NOT FOUND'))
+    await books.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }).orFail(new Error('NOT FOUND'))
     res.status(StatusCodes.OK).json({
       success: true,
-      message: '',
-      data: updatedBook
+      message: ''
     })
   } catch (error) {
     if (error.name === 'CastError' || error.message === 'ID') {

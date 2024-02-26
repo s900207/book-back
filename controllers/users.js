@@ -43,7 +43,8 @@ export const login = async (req, res) => {
         token,
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        favorite: req.user.favoriteQuantity
       }
     })
   } catch (error) {
@@ -97,8 +98,56 @@ export const getProfile = (req, res) => {
       result: {
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        favorite: req.user.favoriteQuantity
       }
+    })
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '未知錯誤'
+    })
+  }
+}
+export const addFavorite = async (req, res) => {
+  try {
+    const { bookId, isFavorite } = req.body
+
+    const user = await users.findById(req.user._id)
+
+    if (isFavorite) {
+      if (!user.favorite.includes(bookId)) {
+        user.favorite.push(bookId)
+      }
+    } else {
+      const index = user.favorite.indexOf(bookId)
+      if (index > -1) {
+        user.favorite.splice(index, 1)
+      }
+    }
+
+    await user.save()
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '',
+      result: user.favorite
+    })
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '未知錯誤'
+    })
+  }
+}
+
+export const getFavorite = async (req, res) => {
+  try {
+    const result = await users.findById(req.user._id, 'favorite').populate('favorite.books')
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '',
+      result: result.favorite
     })
   } catch (error) {
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({

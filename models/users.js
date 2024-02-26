@@ -1,8 +1,19 @@
-import { Schema, model, Error } from 'mongoose'
+import { Schema, model, Error, ObjectId } from 'mongoose'
 import validator from 'validator'
 import bcrypt from 'bcrypt'
 import UserRole from '../enums/UserRole.js'
 
+const favoriteSchema = new Schema({
+  book: {
+    type: ObjectId,
+    ref: 'books',
+    required: [true, '缺少書本欄位']
+  },
+  isFavorite: {
+    type: Boolean,
+    default: false
+  }
+})
 const schema = new Schema({
   account: {
     type: String,
@@ -38,6 +49,9 @@ const schema = new Schema({
   role: {
     type: Number,
     default: UserRole.USER
+  },
+  favorite: {
+    type: [favoriteSchema]
   }
 }, {
   timestamps: true,
