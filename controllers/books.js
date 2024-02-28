@@ -246,14 +246,23 @@ export const addreviews = async (req, res) => {
 }
 
 export const editreviews = async (req, res) => {
-  console.log(req.body.reviews)
   try {
     if (!validator.isMongoId(req.params.id)) throw new Error('ID')
-    await books.findByIdAndUpdate(req.params.id, req.body, { runValidators: true }).orFail(new Error('NOT FOUND'))
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: ''
-    })
+    const book = await books.findById(req.params.id) // 使用 req.params.id
+    console.log(req.params.id)
+    const review = book.reviews.id(req.params.reviewId)
+    // console.log(req.params.reviewId)
+    if (review) {
+      review.rating = req.body.rating
+      review.comment = req.body.comment
+      await book.save()
+      res.status(StatusCodes.OK).json({
+        success: true,
+        message: '編輯成功'
+      })
+    } else {
+      throw new Error('NOT FOUND')
+    }
   } catch (error) {
     if (error.name === 'CastError' || error.message === 'ID') {
       res.status(StatusCodes.BAD_REQUEST).json({
@@ -278,5 +287,26 @@ export const editreviews = async (req, res) => {
         message: '未知錯誤'
       })
     }
+  }
+}
+
+export const getFavoritebook = async (req, res) => {
+  try {
+    // 從請求的查詢參數中獲取書籍 ID
+    const bookIds = req.query.bookIds.split(',')
+
+    // 根據書籍 ID 查詢書籍
+    const result = await books.find({ _id: { $in: bookIds }, favorite: true })
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '',
+      result
+    })
+  } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '未知錯誤'
+    })
   }
 }
