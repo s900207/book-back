@@ -45,7 +45,8 @@ export const login = async (req, res) => {
         token,
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        favorite: req.user.favorite
       }
     })
   } catch (error) {
@@ -98,7 +99,8 @@ export const getProfile = (req, res) => {
       result: {
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        favorite: req.user.favorite
       }
     })
   } catch (error) {

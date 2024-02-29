@@ -245,11 +245,10 @@ export const addreviews = async (req, res) => {
   }
 }
 
-export const editreviews = async (req, res) => {
+export const editReviews = async (req, res) => {
   try {
     if (!validator.isMongoId(req.params.id)) throw new Error('ID')
     const book = await books.findById(req.params.id) // 使用 req.params.id
-    console.log(req.params.id)
     const review = book.reviews.id(req.params.reviewId)
     // console.log(req.params.reviewId)
     if (review) {
