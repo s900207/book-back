@@ -3,6 +3,18 @@ import validator from 'validator'
 import bcrypt from 'bcrypt'
 import UserRole from '../enums/UserRole.js'
 
+const cartSchema = new Schema({
+  book: {
+    type: ObjectId,
+    ref: 'books',
+    required: [true, '缺少商品欄位']
+  },
+  quantity: {
+    type: Number,
+    required: [true, '缺少商品數量']
+  }
+})
+
 const favoriteSchema = new Schema({
   book: {
     type: ObjectId,
@@ -46,6 +58,9 @@ const schema = new Schema({
   tokens: {
     type: [String]
   },
+  cart: {
+    type: [cartSchema]
+  },
   role: {
     type: Number,
     default: UserRole.USER
@@ -57,6 +72,13 @@ const schema = new Schema({
   timestamps: true,
   versionKey: false
 })
+
+schema.virtual('cartQuantity')
+  .get(function () {
+    return this.cart.reduce((total, current) => {
+      return total + current.quantity
+    }, 0)
+  })
 
 schema.pre('save', function (next) {
   const user = this

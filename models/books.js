@@ -41,8 +41,8 @@ const schema = new Schema({
     required: [true, '缺少出版者名稱']
   },
   retailPrice: {
-    type: String,
-    required: [true, '缺少價格']
+    type: Number,
+    required: [true, '缺少書本價格']
   },
   categories: {
     type: String,

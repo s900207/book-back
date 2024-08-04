@@ -2,6 +2,9 @@ import users from '../models/users.js'
 import { StatusCodes } from 'http-status-codes'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
+import books from '../models/books.js'
+import validator from 'validator'
+
 const ObjectId = mongoose.Types.ObjectId
 
 export const create = async (req, res) => {
@@ -35,7 +38,7 @@ export const create = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const token = jwt.sign({ _id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '1 s' })
+    const token = jwt.sign({ _id: req.user._id }, process.env.JWT_SECRET, { expiresIn: '7 days' })
     req.user.tokens.push(token)
     await req.user.save()
     res.status(StatusCodes.OK).json({
@@ -45,7 +48,8 @@ export const login = async (req, res) => {
         token,
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        cart: req.user.cartQuantity
       }
     })
   } catch (error) {
@@ -98,7 +102,8 @@ export const getProfile = (req, res) => {
       result: {
         account: req.user.account,
         email: req.user.email,
-        role: req.user.role
+        role: req.user.role,
+        cart: req.user.cartQuantity
       }
     })
   } catch (error) {
@@ -169,6 +174,87 @@ export const checkFavoriteStatus = async (req, res) => {
       result: bookIds
     })
   } catch (error) {
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '未知錯誤'
+    })
+  }
+}
+
+export const editCart = async (req, res) => {
+  try {
+    // 檢查商品 id 格式
+    if (!validator.isMongoId(req.body.book)) throw new Error('ID')
+
+    // 尋找購物車內有沒有傳入的商品 ID
+    const idx = req.user.cart.findIndex(item => item.book.toString() === req.body.book)
+    if (idx > -1) {
+      // 修改購物車內已有的商品數量
+      const quantity = req.user.cart[idx].quantity + parseInt(req.body.quantity)
+      // 檢查數量
+      if (quantity <= 0) {
+        req.user.cart.splice(idx, 1)
+      } else {
+        req.user.cart[idx].quantity = quantity
+      }
+    } else {
+      // 檢查商品是否存在或已下架
+      const book = await books.findById(req.body.book).orFail(new Error('NOT FOUND'))
+      req.user.cart.push({
+        book: book._id,
+        quantity: req.body.quantity
+      })
+    }
+
+    await req.user.save()
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '',
+      result: req.user.cartQuantity
+    })
+  } catch (error) {
+    console.log(error)
+    if (error.name === 'CastError' || error.message === 'ID') {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'ID 格式錯誤'
+      })
+    } else if (error.message === 'NOT FOUND') {
+      res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: '查無商品'
+      })
+    } else if (error.message === 'QUANTITY') {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: '數量格式錯誤'
+      })
+    } else if (error.name === 'ValidationError') {
+      const key = Object.keys(error.errors)[0]
+      const message = error.errors[key].message
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message
+      })
+    } else {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: '未知錯誤'
+      })
+    }
+  }
+}
+
+export const getCart = async (req, res) => {
+  try {
+    const result = await users.findById(req.user._id, 'cart').populate('cart.book')
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '',
+      result: result.cart
+    })
+  } catch (error) {
+    console.log(error)
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: '未知錯誤'

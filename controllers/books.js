@@ -178,6 +178,59 @@ export const deleteBook = async (req, res) => {
     }
   }
 }
+
+export const editBook = async (req, res) => {
+  try {
+    if (!validator.isMongoId(req.params.id)) throw new Error('ID')
+
+    const updatedFields = {
+      title: req.body.title,
+      authors: req.body.authors,
+      publisher: req.body.publisher,
+      retailPrice: req.body.retailPrice,
+      categories: req.body.categories,
+      description: req.body.description
+    }
+
+    const result = await books.findByIdAndUpdate(req.params.id, updatedFields, {
+      new: true, // Return the updated document
+      runValidators: true // Validate the updates against the model's schema
+    })
+
+    if (!result) throw new Error('NOT FOUND')
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '書籍已成功更新',
+      result
+    })
+  } catch (error) {
+    if (error.name === 'CastError' || error.message === 'ID') {
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: 'ID 格式錯誤'
+      })
+    } else if (error.name === 'ValidationError') {
+      const key = Object.keys(error.errors)[0]
+      const message = error.errors[key].message
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message
+      })
+    } else if (error.message === 'NOT FOUND') {
+      res.status(StatusCodes.NOT_FOUND).json({
+        success: false,
+        message: '查無書籍'
+      })
+    } else {
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: '未知錯誤'
+      })
+    }
+  }
+}
+
 export const addreviews = async (req, res) => {
   try {
     if (!validator.isMongoId(req.params.id)) throw new Error('ID')
@@ -247,11 +300,13 @@ export const addreviews = async (req, res) => {
 
 export const editreviews = async (req, res) => {
   try {
-    if (!validator.isMongoId(req.params.id)) throw new Error('ID')
-    const book = await books.findById(req.params.id) // 使用 req.params.id
-    console.log(req.params.id)
+    console.log('Request body:', req.body) // 檢查請求體
+    console.log('Request params:', req.params) // 檢查路由參數
+
+    if (!validator.isMongoId(req.params.bookId)) throw new Error('ID')
+    const book = await books.findById(req.params.bookId) // 使用 req.params.bookId
     const review = book.reviews.id(req.params.reviewId)
-    // console.log(req.params.reviewId)
+
     if (review) {
       review.rating = req.body.rating
       review.comment = req.body.comment
