@@ -21,7 +21,10 @@ app.use(cors({
     } else {
       callback(new Error('CORS'), false)
     }
-  }
+  },
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }))
 app.use((_, req, res, next) => {
   res.status(StatusCodes.FORBIDDEN).json({
