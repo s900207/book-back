@@ -10,7 +10,7 @@ cloudinary.config({
 
 const router = express.Router()
 
-router.post('/', async (req, res) => {
+router.post('/upload', async (req, res) => {
   try {
     const { imageUrl } = req.body
     if (!imageUrl) {
