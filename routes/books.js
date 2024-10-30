@@ -6,7 +6,7 @@ import admin from '../middlewares/admin.js'
 
 const router = Router()
 
-router.post('/', auth.jwt, admin, upload.single('image'), create)
+router.post('/', auth.jwt, admin, upload, create)
 router.get('/all', auth.jwt, admin, getAll)
 router.delete('/:id', auth.jwt, admin, deleteBook)
 router.patch('/:id', auth.jwt, admin, editBook)
