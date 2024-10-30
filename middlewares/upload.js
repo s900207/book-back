@@ -10,7 +10,7 @@ cloudinary.config({
 
 const router = express.Router()
 
-router.post('/upload', async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { imageUrl } = req.body
     if (!imageUrl) {
@@ -21,9 +21,7 @@ router.post('/upload', async (req, res) => {
     }
 
     // 將圖片從 URL 上傳到 Cloudinary
-    const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
-      transformation: { quality: 'auto', fetch_format: 'auto' }
-    })
+    const uploadResponse = await cloudinary.uploader.upload(imageUrl)
 
     res.status(StatusCodes.OK).json({
       success: true,
