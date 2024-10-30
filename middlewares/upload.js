@@ -1,7 +1,5 @@
 import express from 'express'
-import multer from 'multer'
 import { v2 as cloudinary } from 'cloudinary'
-import { CloudinaryStorage } from 'multer-storage-cloudinary'
 import { StatusCodes } from 'http-status-codes'
 import axios from 'axios'
 import FormData from 'form-data'
@@ -10,29 +8,6 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_KEY,
   api_secret: process.env.CLOUDINARY_SECRET
-})
-
-const storage = new CloudinaryStorage({
-  cloudinary,
-  params: {
-    folder: 'books',
-    format: async (req, file) => 'jpg', // supports promises as well
-    public_id: (req, file) => file.originalname
-  }
-})
-
-const upload = multer({
-  storage,
-  fileFilter (req, file, callback) {
-    if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
-      callback(null, true)
-    } else {
-      callback(new multer.MulterError('LIMIT_FILE_FORMAT'), false)
-    }
-  },
-  limits: {
-    fileSize: 1024 * 1024
-  }
 })
 
 const router = express.Router()
