@@ -1,7 +1,10 @@
+import express from 'express'
 import multer from 'multer'
 import { v2 as cloudinary } from 'cloudinary'
 import { CloudinaryStorage } from 'multer-storage-cloudinary'
 import { StatusCodes } from 'http-status-codes'
+import axios from 'axios'
+import FormData from 'form-data'
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
@@ -9,8 +12,17 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET
 })
 
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'books',
+    format: async (req, file) => 'jpg', // supports promises as well
+    public_id: (req, file) => file.originalname
+  }
+})
+
 const upload = multer({
-  storage: new CloudinaryStorage({ cloudinary }),
+  storage,
   fileFilter (req, file, callback) {
     if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
       callback(null, true)
@@ -23,27 +35,40 @@ const upload = multer({
   }
 })
 
-export default (req, res, next) => {
-  upload.single('image')(req, res, error => {
-    if (error instanceof multer.MulterError) {
-      let message = '上傳錯誤'
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        message = '檔案太大'
-      } else if (error.code === 'LIMIT_FILE_FORMAT') {
-        message = '檔案格式錯誤'
-      }
-      res.status(StatusCodes.BAD_REQUEST).json({
+const router = express.Router()
+
+router.post('/upload', async (req, res, next) => {
+  try {
+    const { imageUrl } = req.body
+    if (!imageUrl) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message
+        message: '缺少圖片 URL'
       })
-    } else if (error) {
-      console.log(error)
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: '未知錯誤'
-      })
-    } else {
-      next()
     }
-  })
-}
+
+    const response = await axios.get(imageUrl, { responseType: 'arraybuffer' })
+    const buffer = Buffer.from(response.data, 'binary')
+
+    const formData = new FormData()
+    formData.append('file', buffer, { filename: 'image.jpg' })
+    formData.append('upload_preset', 'YOUR_UPLOAD_PRESET')
+
+    const cloudinaryResponse = await axios.post(`https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_NAME}/image/upload`, formData, {
+      headers: formData.getHeaders()
+    })
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      secure_url: cloudinaryResponse.data.secure_url
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '圖片上傳失敗'
+    })
+  }
+})
+
+export default router
