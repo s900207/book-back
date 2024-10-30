@@ -4,6 +4,7 @@ import validator from 'validator'
 
 export const create = async (req, res) => {
   try {
+    // 檢查是否已存在相同書籍
     const existingBook = await books.findOne({ title: req.body.title })
     if (existingBook) {
       return res.status(StatusCodes.CONFLICT).json({
@@ -11,14 +12,25 @@ export const create = async (req, res) => {
         message: '重複引入'
       })
     }
-    const result = await books.create(req.body)
-    res.status(StatusCodes.OK).json({
+
+    // 確保圖片 URL 被傳遞，並將其添加到書籍資料中
+    const imageUrl = req.file ? req.file.path : null // 假設圖片由 multer 上傳，這裡獲取圖片 URL
+
+    const bookData = {
+      ...req.body,
+      imageUrl // 將圖片 URL 添加到書籍資料中
+    }
+
+    // 創建新書籍
+    const result = await books.create(bookData)
+    res.status(StatusCodes.CREATED).json({
       success: true,
       message: '',
       result
     })
   } catch (error) {
     console.log(error)
+    // 錯誤處理
     if (error.name === 'ValidationError') {
       const key = Object.keys(error.errors)[0]
       const message = error.errors[key].message
