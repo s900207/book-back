@@ -8,7 +8,6 @@ import routeBooks from './routes/books.js'
 import routeOrders from './routes/orders.js'
 import { StatusCodes } from 'http-status-codes'
 import './passport/passport.js'
-import uploadRouter from './routes/upload.js'
 
 const app = express()
 
@@ -45,7 +44,6 @@ app.use((_, req, res, next) => {
 app.use('/users', routeUsers)
 app.use('/books', routeBooks)
 app.use('/orders', routeOrders)
-app.use('/upload', uploadRouter)
 
 app.all('*', (req, res) => {
   res.status(StatusCodes.NOT_FOUND).json({

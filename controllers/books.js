@@ -14,7 +14,7 @@ export const create = async (req, res) => {
     }
 
     // 確保圖片 URL 被傳遞，並將其添加到書籍資料中
-    const imageUrl = req.file ? req.file.path : null // 假設圖片由 multer 上傳，這裡獲取圖片 URL
+    const imageUrl = req.body.imageUrl || null // 獲取從前端傳來的圖片 URL
 
     const bookData = {
       ...req.body,
