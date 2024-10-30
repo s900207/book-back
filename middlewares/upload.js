@@ -1,5 +1,6 @@
-import express from 'express'
+import multer from 'multer'
 import { v2 as cloudinary } from 'cloudinary'
+import { CloudinaryStorage } from 'multer-storage-cloudinary'
 import { StatusCodes } from 'http-status-codes'
 
 cloudinary.config({
@@ -8,34 +9,41 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_SECRET
 })
 
-const router = express.Router()
-
-router.post('/upload', async (req, res) => {
-  try {
-    const { imageUrl } = req.body
-    if (!imageUrl) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: '缺少圖片 URL'
-      })
+const upload = multer({
+  storage: new CloudinaryStorage({ cloudinary }),
+  fileFilter (req, file, callback) {
+    if (['image/jpeg', 'image/png'].includes(file.mimetype)) {
+      callback(null, true)
+    } else {
+      callback(new multer.MulterError('LIMIT_FILE_FORMAT'), false)
     }
-
-    // 將圖片從 URL 上傳到 Cloudinary
-    const uploadResponse = await cloudinary.uploader.upload(imageUrl, {
-      transformation: { quality: 'auto', fetch_format: 'auto' }
-    })
-
-    res.status(StatusCodes.OK).json({
-      success: true,
-      secure_url: uploadResponse.secure_url
-    })
-  } catch (error) {
-    console.error(error)
-    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      message: '圖片上傳失敗'
-    })
+  },
+  limits: {
+    fileSize: 1024 * 1024
   }
 })
 
-export default router
+export default (req, res, next) => {
+  upload.single('image')(req, res, error => {
+    if (error instanceof multer.MulterError) {
+      let message = '上傳錯誤'
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        message = '檔案太大'
+      } else if (error.code === 'LIMIT_FILE_FORMAT') {
+        message = '檔案格式錯誤'
+      }
+      res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message
+      })
+    } else if (error) {
+      console.log(error)
+      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: '未知錯誤'
+      })
+    } else {
+      next()
+    }
+  })
+}
