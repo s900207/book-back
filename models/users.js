@@ -67,6 +67,12 @@ const schema = new Schema({
   },
   favorite: {
     type: [favoriteSchema]
+  },
+  nickname: {
+    type: String
+  },
+  image: {
+    type: String
   }
 }, {
   timestamps: true,

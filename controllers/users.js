@@ -49,7 +49,8 @@ export const login = async (req, res) => {
         account: req.user.account,
         email: req.user.email,
         role: req.user.role,
-        cart: req.user.cartQuantity
+        cart: req.user.cartQuantity,
+        nickname: req.user.account
       }
     })
   } catch (error) {
@@ -255,6 +256,38 @@ export const getCart = async (req, res) => {
     })
   } catch (error) {
     console.log(error)
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: '未知錯誤'
+    })
+  }
+}
+
+export const editNickname = async (req, res) => {
+  try {
+    const { nickname } = req.body // 從請求中取得新的暱稱
+
+    // 驗證暱稱格式，例如檢查長度或不允許空白等
+    if (!nickname || nickname.trim() === '') {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: '暱稱不能為空'
+      })
+    }
+
+    // 更新使用者的暱稱
+    req.user.nickname = nickname.trim()
+    await req.user.save() // 儲存更改
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      message: '暱稱已更新',
+      result: {
+        nickname: req.user.nickname
+      }
+    })
+  } catch (error) {
+    console.error(error)
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: '未知錯誤'

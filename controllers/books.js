@@ -1,24 +1,78 @@
 import books from '../models/books.js'
 import { StatusCodes } from 'http-status-codes'
 import validator from 'validator'
+import { v2 as cloudinary } from 'cloudinary'
 
+const uploadImageFromUrl = async (imageUrl) => {
+  try {
+    console.log('開始從 URL 上傳圖片到 Cloudinary:', imageUrl)
+
+    const result = await cloudinary.uploader.upload(imageUrl, {
+      folder: 'books',
+      transformation: [
+        { width: 500, height: 500, crop: 'limit' },
+        { quality: 'auto' }
+      ]
+    })
+
+    console.log('URL 圖片上傳成功:', result.secure_url)
+    return result.secure_url
+  } catch (error) {
+    console.error('從 URL 上傳圖片失敗:', error)
+    return imageUrl
+  }
+}
 export const create = async (req, res) => {
   try {
-    const existingBook = await books.findOne({ title: req.body.title })
+    const bookData = {
+      title: req.body.title,
+      authors: req.body.authors,
+      publisher: req.body.publisher,
+      retailPrice: req.body.retailPrice,
+      categories: req.body.categories,
+      description: req.body.description,
+      maturityRating: req.body.maturityRating,
+      image: ''
+    }
+
+    if (req.file) {
+      bookData.image = req.file.path
+      console.log('使用用戶上傳圖片:', req.file.path)
+    } else if (req.body.image) {
+      const imageUrl = req.body.image
+
+      if (imageUrl.startsWith('https://books.google.com') ||
+          imageUrl.startsWith('http://books.google.com')) {
+        console.log('偵測到 Google Books 圖片，準備上傳到 Cloudinary')
+        bookData.image = await uploadImageFromUrl(imageUrl)
+      } else if (imageUrl.startsWith('https://res.cloudinary.com')) {
+        bookData.image = imageUrl
+        console.log('使用現有 Cloudinary 圖片:', imageUrl)
+      } else {
+        console.log('偵測到外部圖片 URL，嘗試上傳到 Cloudinary')
+        bookData.image = await uploadImageFromUrl(imageUrl)
+      }
+    }
+
+    console.log('準備創建書籍:', bookData)
+
+    const existingBook = await books.findOne({ title: bookData.title })
     if (existingBook) {
       return res.status(StatusCodes.CONFLICT).json({
         success: false,
         message: '重複引入'
       })
     }
-    const result = await books.create(req.body)
+
+    const result = await books.create(bookData)
+
     res.status(StatusCodes.OK).json({
       success: true,
-      message: '',
+      message: '創建成功',
       result
     })
   } catch (error) {
-    console.log(error)
+    console.log('創建書籍錯誤:', error)
     if (error.name === 'ValidationError') {
       const key = Object.keys(error.errors)[0]
       const message = error.errors[key].message
@@ -192,9 +246,13 @@ export const editBook = async (req, res) => {
       description: req.body.description
     }
 
+    if (req.file) {
+      updatedFields.image = req.file.path
+    }
+
     const result = await books.findByIdAndUpdate(req.params.id, updatedFields, {
-      new: true, // Return the updated document
-      runValidators: true // Validate the updates against the model's schema
+      new: true,
+      runValidators: true
     })
 
     if (!result) throw new Error('NOT FOUND')

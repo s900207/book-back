@@ -60,10 +60,6 @@ const schema = new Schema({
     type: String,
     required: [true, '缺少分級']
   },
-  buyLink: {
-    type: String,
-    required: [true, '缺少連結']
-  },
   reviews: {
     type: [reviewsSchema]
   }
