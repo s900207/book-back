@@ -307,7 +307,7 @@ export const addreviews = async (req, res) => {
     }
     const reviews = {
       user: req.user._id,
-      comment: req.body.conmment,
+      comment: req.body.comment,
       rating: req.body.rating
     }
 
@@ -318,7 +318,7 @@ export const addreviews = async (req, res) => {
       success: true,
       message: '',
       result: {
-        comment: req.body.conmment,
+        comment: req.body.comment,
         rating: req.body.rating,
         _id: result.reviews[result.reviews.length - 1]._id,
         reply: [],
