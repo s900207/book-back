@@ -1,13 +1,18 @@
 import 'dotenv/config'
 import express from 'express'
 import mongoose from 'mongoose'
-// 是否允許server 的跨域請求
 import cors from 'cors'
+import compression from 'compression'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import routeUsers from './routes/users.js'
 import routeBooks from './routes/books.js'
 import routeOrders from './routes/orders.js'
 import { StatusCodes } from 'http-status-codes'
 import './passport/passport.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 
@@ -32,6 +37,11 @@ app.use((_, req, res, next) => {
     message: '請求被拒絕'
   })
 })
+
+app.use(express.static(path.join(__dirname, 'dist'), {
+  maxAge: '1y',
+  immutable: true
+}))
 
 app.use(express.json())
 app.use((_, req, res, next) => {
