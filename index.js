@@ -52,6 +52,11 @@ app.use((_, req, res, next) => {
   })
 })
 
+app.use(['/books', '/users', '/orders'], (req, res, next) => {
+  res.set('Cache-Control', 'no-store')
+  next()
+})
+
 app.use('/users', routeUsers)
 app.use('/books', routeBooks)
 app.use('/orders', routeOrders)
